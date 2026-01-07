@@ -134,9 +134,13 @@ class RahkaranClient:
 
     # --- Retail APIs ---
 
-    def get_retail_shops(self) -> Dict:
-        """Fetch available retail shops."""
-        return self._request("GET", URLs.GET_RETAIL_SHOPS)
+    def get_retail_shops(self, with_stores: bool = True) -> Dict:
+        """
+        Fetch available retail shops.
+        Args:
+           with_stores: If true, includes stores in the response.
+        """
+        return self._request("GET", URLs.GET_RETAIL_SHOPS, params={"withStores": str(with_stores).lower()})
 
     def get_products(self, store_id: int) -> Dict:
         """Fetch products for a specific store."""

@@ -23,7 +23,7 @@ class URLs:
 
     # --- Retail ---
     # Shops & Products
-    GET_RETAIL_SHOPS = f"{RETAIL_BASE}/{RETAIL_SVC}/GetRetailShops"
+    GET_RETAIL_SHOPS = f"{RETAIL_BASE}/ESales.svc/shops"
     # Note: These paths are based on your previous Postman collection. 
     # Adjust 'ProductService' if the actual SVC name differs.
     GET_PRODUCTS = f"{RETAIL_BASE}/ProductService.svc/GetProducts" 
