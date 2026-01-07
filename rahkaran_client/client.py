@@ -79,9 +79,22 @@ class RahkaranClient:
                 # Handle void responses or empty queries
                 if not response.content:
                     return {}
-                return response.json()
+                
+                # Check for BOM and decode if necessary
+                text = response.text
+                if text.startswith(u'\ufeff'):
+                    text = text.encode('utf-8')[3:].decode('utf-8')
+                
+                # Standard json decode
+                try:
+                    return response.json()
+                except ValueError:
+                    # Fallback to manual parsing if .json() failed (e.g. BOM issues not caught)
+                    import json
+                    return json.loads(text.strip())
+
             except ValueError:
-                # Some endpoints return plain text or HTML on error despite 200 OK (Postman behavior observed)
+                # Some endpoints return plain text or HTML on error despite 200 OK
                 return {"raw_text": response.text}
 
         except requests.RequestException as e:
