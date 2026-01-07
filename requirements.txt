@@ -1,0 +1,2 @@
+requests>=2.25.0
+git+https://github.com/mmdmirh/Rahkaran_login_webservice.git#egg=rahkaran_login_webservice

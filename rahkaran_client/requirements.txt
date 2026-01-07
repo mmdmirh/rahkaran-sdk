@@ -1,0 +1,3 @@
+requests>=2.0.0
+# User's Authentication Library
+git+https://github.com/mmdmirh/Rahkaran_login_webservice.git#egg=rahkaran_login_webservice
