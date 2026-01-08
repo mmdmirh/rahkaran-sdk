@@ -67,7 +67,7 @@ class RahkaranClient:
                 raise e
             raise RahkaranAuthError(f"Authentication process failed: {e}")
 
-    def _request(self, method: str, endpoint: str, time_out: int = 30, **kwargs) -> Dict[str, Any]:
+    def _request(self, method: str, endpoint: str, time_out: int = 10, **kwargs) -> Dict[str, Any]:
         """Internal request handler with error mapping."""
         url = URLs.build_url(self.base_url, endpoint)
         
@@ -161,7 +161,7 @@ class RahkaranClient:
         """
         return self._request("GET", URLs.GET_RETAIL_SHOPS, params={"withStores": str(with_stores).lower()})
 
-    def get_products(self, store_id: int, from_: int = 0, number_of_records: int = 600, time_out: int = 30) -> Dict:
+    def get_products(self, store_id: int, from_: int = 0, number_of_records: int = 50, time_out: int = 10) -> Dict:
         """Fetch products for a specific store with pagination."""
         params = {
             "storeId": store_id,
