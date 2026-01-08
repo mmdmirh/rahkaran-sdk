@@ -5,11 +5,10 @@ from .urls import URLs
 from .exceptions import RahkaranError, RahkaranAuthError, RahkaranServerError, RahkaranClientError
 
 # Try importing the user's auth library. 
-# We assume it follows a standard pattern or the user will adjust the import.
 try:
-    from rahkaran_login_webservice import Login # Hypothetical import based on repo name
+    from rahkaran_auth import RahkaranAuth
 except ImportError:
-    Login = None
+    RahkaranAuth = None
 
 logger = logging.getLogger(__name__)
 
@@ -45,21 +44,28 @@ class RahkaranClient:
 
     def authenticate(self, username, password):
         """
-        Authenticates using the external 'Rahkaran_login_webservice' library.
+        Authenticates using the external 'rahkaran-auth' library.
         """
-        if not Login:
-            raise ImportError("rahkaran_login_webservice library not found. Please install it or provide cookies directly.")
+        if not RahkaranAuth:
+            raise ImportError("rahkaran-auth library not found. Please install it to use username/password authentication.")
         
-        # Hypothetical integration - User may need to adjust based on actual lib signature
         try:
-            # Assuming the lib has a method to get cookies or session
-            # This is a PLACEHOLDER implementation for the external lib usage
             logger.info(f"Authenticating user {username}...")
-            # auth_result = Login.login(username, password, self.base_url) 
-            # self.session.cookies.update(auth_result.cookies)
-            pass 
+            auth = RahkaranAuth()
+            result = auth.login(self.base_url, username, password)
+            
+            if result.get("success"):
+                self.session.cookies.update(result.get("cookies", {}))
+                logger.info("Authentication successful.")
+            else:
+                error_msg = result.get("error", "Unknown login error")
+                raise RahkaranAuthError(f"Authentication failed: {error_msg}")
+                
         except Exception as e:
-            raise RahkaranAuthError(f"Authentication failed: {e}")
+            # Re-raise standard auth errors, wrap others
+            if isinstance(e, RahkaranAuthError):
+                raise e
+            raise RahkaranAuthError(f"Authentication process failed: {e}")
 
     def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         """Internal request handler with error mapping."""
