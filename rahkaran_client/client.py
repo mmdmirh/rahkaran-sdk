@@ -67,12 +67,12 @@ class RahkaranClient:
                 raise e
             raise RahkaranAuthError(f"Authentication process failed: {e}")
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def _request(self, method: str, endpoint: str, time_out: int = 10, **kwargs) -> Dict[str, Any]:
         """Internal request handler with error mapping."""
         url = URLs.build_url(self.base_url, endpoint)
         
         try:
-            response = self.session.request(method, url, timeout=10, **kwargs)
+            response = self.session.request(method, url, timeout=time_out, **kwargs)
             
             if response.status_code == 401 or response.status_code == 403:
                 raise RahkaranAuthError(f"Unauthorized ({response.status_code}): {response.text}")
@@ -161,14 +161,14 @@ class RahkaranClient:
         """
         return self._request("GET", URLs.GET_RETAIL_SHOPS, params={"withStores": str(with_stores).lower()})
 
-    def get_products(self, store_id: int, from_: int = 0, number_of_records: int = 50) -> Dict:
+    def get_products(self, store_id: int, from_: int = 0, number_of_records: int = 50, time_out: int = 10) -> Dict:
         """Fetch products for a specific store with pagination."""
         params = {
             "storeId": store_id,
             "from": from_,
             "numberOfRecords": number_of_records
         }
-        return self._request("GET", URLs.GET_PRODUCTS, params=params)
+        return self._request("GET", URLs.GET_PRODUCTS, params=params, time_out=time_out)
 
     def get_remaining(self, store_id: int, product_id: int) -> Dict:
         """Fetch remaining stock for a product in a store."""
