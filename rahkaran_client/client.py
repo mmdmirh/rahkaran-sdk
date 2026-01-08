@@ -161,9 +161,14 @@ class RahkaranClient:
         """
         return self._request("GET", URLs.GET_RETAIL_SHOPS, params={"withStores": str(with_stores).lower()})
 
-    def get_products(self, store_id: int) -> Dict:
-        """Fetch products for a specific store."""
-        return self._request("POST", URLs.GET_PRODUCTS, json={"storeId": store_id})
+    def get_products(self, store_id: int, from_: int = 0, number_of_records: int = 50) -> Dict:
+        """Fetch products for a specific store with pagination."""
+        params = {
+            "storeId": store_id,
+            "from": from_,
+            "numberOfRecords": number_of_records
+        }
+        return self._request("GET", URLs.GET_PRODUCTS, params=params)
 
     def get_remaining(self, store_id: int, product_id: int) -> Dict:
         """Fetch remaining stock for a product in a store."""
