@@ -26,8 +26,15 @@ class URLs:
     GET_RETAIL_SHOPS = f"{RETAIL_BASE}/ESales.svc/shops"
     # Note: These paths are based on your previous Postman collection. 
     # Adjust 'ProductService' if the actual SVC name differs.
-    GET_PRODUCTS = f"{RETAIL_BASE}/ESales.svc/products" 
+    # Sales
+    REGISTER_INVOICE = f"{RETAIL_BASE}/ESales.svc/Invoice"
+    REGISTER_SALES_ORDER = f"{RETAIL_BASE}/ESales.svc/SalesOrder"
     
+    # Customer
+    CUSTOMER = f"{RETAIL_BASE}/ESales.svc/Customer"
+    ADDRESS = f"{RETAIL_BASE}/ESales.svc/Address"
+    GET_CUSTOMERS = f"{RETAIL_BASE}/ESales.svc/Customers"
+
     # Stock
     GET_REMAINING = f"{RETAIL_BASE}/InventoryService.svc/GetRemaining" # Deduced from /remaining
     

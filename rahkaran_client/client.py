@@ -145,6 +145,163 @@ class RahkaranClient:
 
         return self._request("POST", URLs.REGISTER_VOUCHER, json=final_payload)
 
+    def create_inventory_voucher(self, 
+                                 store_id: int, 
+                                 voucher_type: int, 
+                                 items: List[Dict], 
+                                 date: Optional[str] = None, 
+                                 description: str = "") -> Dict:
+        """
+        High-level helper to create an inventory voucher from product items.
+        
+        Args:
+            store_id: The ID of the warehouse/store (StockRef).
+            voucher_type: The internal ID for the voucher type (VoucherTypeRef).
+            items: List of item dictionaries. Each should have:
+                   - 'partId': Mapping to 'PartRef'
+                   - 'quantity': The quantity to register
+                   - 'unitId': (Optional) Mapping to 'UnitRef'. Defaults to 1.
+            date: (Optional) Voucher date.
+            description: (Optional) Voucher description.
+        """
+        voucher_items = []
+        for item in items:
+            voucher_items.append({
+                "PartRef": item.get("partId"),
+                "Quantity": item.get("quantity", 0),
+                "UnitRef": item.get("unitId") or item.get("units", [{}])[0].get("id", 1),
+                "TrackingFactors": item.get("trackingFactors", [])
+            })
+            
+        voucher_payload = {
+            "VoucherTypeRef": voucher_type,
+            "StockRef": store_id,
+            "VoucherItems": voucher_items,
+            "Description": description
+        }
+        
+        if date:
+            voucher_payload["Date"] = date
+            
+        return self.register_voucher(voucher_payload)
+
+    # --- Sales APIs ---
+
+    def register_invoice(self, invoice_payload: Dict) -> Dict:
+        """Register a Sales Invoice in Rahkaran."""
+        return self._request("POST", URLs.REGISTER_INVOICE, json=invoice_payload)
+
+    def register_sales_order(self, order_payload: Dict) -> Dict:
+        """Register a Sales Order in Rahkaran."""
+        return self._request("POST", URLs.REGISTER_SALES_ORDER, json=order_payload)
+
+    def create_sales_invoice(self,
+                             customer_id: int,
+                             store_id: int,
+                             settlement_policy_id: int,
+                             items: List[Dict],
+                             document_pattern_id: int = 1,
+                             date: Optional[str] = None,
+                             currency_id: int = 1) -> Dict:
+        """
+        Helper to create a Sales Invoice from a list of products.
+        
+        Args:
+            customer_id: The Rahkaran Customer ID.
+            store_id: The Retail Store ID.
+            settlement_policy_id: The ID of the settlement policy (e.g., Cash, POS).
+            items: List of item dictionaries. Each should have:
+                   - 'productId': The Rahkaran Product ID.
+                   - 'quantity': Quantity to sell.
+                   - 'unitId': (Optional) Unit ID. Defaults to 1.
+                   - 'fee': (Optional) Unit Price (Fee).
+            document_pattern_id: (Optional) Document pattern ID. Defaults to 1.
+            date: (Optional) Invoice date.
+            currency_id: (Optional) Currency ID. Defaults to 1 (IRR).
+        """
+        invoice_items = []
+        for item in items:
+            invoice_items.append({
+                "productId": item.get("productId") or item.get("id"),
+                "unitId": item.get("unitId") or item.get("units", [{}])[0].get("id", 1),
+                "quantity": item.get("quantity", 0),
+                "storeId": store_id,
+                "fee": item.get("fee", 0)
+            })
+
+        payload = {
+            "customerId": customer_id,
+            "storeId": store_id,
+            "settlementPolicyId": settlement_policy_id,
+            "documentPatternId": document_pattern_id,
+            "currencyId": currency_id,
+            "items": invoice_items
+        }
+
+        if date:
+            payload["date"] = date
+
+        return self.register_invoice(payload)
+
+    # --- Customer and Address APIs ---
+
+    def create_customer(self, customer_data: Dict) -> Dict:
+        """Register a new customer in Rahkaran."""
+        return self._request("POST", URLs.CUSTOMER, json=customer_data)
+
+    def get_customers(self, from_: int = 0, count: int = 100) -> Dict:
+        """Retrieve a list of customers."""
+        params = {"from": from_, "count": count}
+        return self._request("GET", URLs.GET_CUSTOMERS, params=params)
+
+    def add_customer_address(self, customer_id: int, address_data: Dict) -> Dict:
+        """
+        Add an address to an existing customer.
+        
+        Args:
+            customer_id: The ID of the customer.
+            address_data: A dictionary containing:
+                - 'CityId' (Required)
+                - 'Detail' (Required)
+                - 'Name' (Optional)
+                - 'Isdefault' (Boolean)
+        """
+        payload = {
+            "Customer": customer_id,
+            "AddressData": address_data
+        }
+        return self._request("POST", URLs.ADDRESS, json=payload)
+
+    def register_customer(self,
+                          first_name: str,
+                          last_name: str,
+                          national_code: str,
+                          mobile: str,
+                          gender: int = 0,
+                          birth_date: Optional[str] = None) -> Dict:
+        """
+        High-level helper to register a customer with basic details.
+        
+        Args:
+            first_name: Customer's first name.
+            last_name: Customer's last name.
+            national_code: Customer's national identity code.
+            mobile: Mobile phone number.
+            gender: 0 for unknown/unspecified, 1 for Male, 2 for Female (based on common patterns).
+            birth_date: (Optional) "YYYY-MM-DD"
+        """
+        payload = {
+            "FirstName": first_name,
+            "Lastname": last_name,
+            "Nationalcode": national_code,
+            "mobile": mobile,
+            "Gender": gender
+        }
+        if birth_date:
+            payload["Birthdate"] = birth_date
+            
+        return self.create_customer(payload)
+
     # --- Material Management APIs ---
 
     def get_tracking_factors(self) -> Dict:
