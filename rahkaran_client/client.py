@@ -249,9 +249,33 @@ class RahkaranClient:
         """Register a new customer in Rahkaran."""
         return self._request("POST", URLs.CUSTOMER, json=customer_data)
 
-    def get_customers(self, from_: int = 0, count: int = 100) -> Dict:
-        """Retrieve a list of customers."""
-        params = {"from": from_, "count": count}
+    def get_customers(self, 
+                      from_: int = 0, 
+                      count: int = 100, 
+                      name: Optional[str] = None, 
+                      national_id: Optional[str] = None, 
+                      mobile: Optional[str] = None) -> Dict:
+        """
+        Retrieve a list of customers with optional filters.
+        
+        Args:
+            from_: Starting index (pagination).
+            count: Number of records to fetch.
+            name: (Optional) Filter by customer name.
+            national_id: (Optional) Filter by national ID.
+            mobile: (Optional) Filter by mobile number.
+        """
+        params = {
+            "From": from_, 
+            "Number of Records": count
+        }
+        if name:
+            params["Name"] = name
+        if national_id:
+            params["National ID"] = national_id
+        if mobile:
+            params["Mobile"] = mobile
+            
         return self._request("GET", URLs.GET_CUSTOMERS, params=params)
 
     def add_customer_address(self, customer_id: int, address_data: Dict) -> Dict:
