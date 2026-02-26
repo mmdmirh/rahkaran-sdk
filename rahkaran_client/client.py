@@ -301,19 +301,29 @@ class RahkaranClient:
                           last_name: str,
                           national_code: str,
                           mobile: str,
+                          city_id: int,
+                          address_detail: str,
                           gender: int = 0,
-                          birth_date: Optional[str] = None) -> Dict:
+                          birth_date: Optional[str] = None,
+                          address_name: Optional[str] = None) -> Dict:
         """
-        High-level helper to register a customer with basic details.
+        High-level helper to register a customer with basic details and a mandatory address.
         
         Args:
             first_name: Customer's first name.
             last_name: Customer's last name.
             national_code: Customer's national identity code.
             mobile: Mobile phone number.
-            gender: 0 for unknown/unspecified, 1 for Male, 2 for Female (based on common patterns).
-            birth_date: (Optional) "YYYY-MM-DD"
+            city_id: ID of the city for the address (Required).
+            address_detail: Full address detail (Required).
+            gender: 0 for unknown/unspecified, 1 for Male, 2 for Female.
+            birth_date: (Optional) "YYYY-MM-DD".
+            address_name: (Optional) A name for the address (e.g., "Home", "Office").
+        
+        Returns:
+            A dictionary containing the results of both operations.
         """
+        # 1. Create the customer
         payload = {
             "FirstName": first_name,
             "Lastname": last_name,
@@ -324,7 +334,28 @@ class RahkaranClient:
         if birth_date:
             payload["Birthdate"] = birth_date
             
-        return self.create_customer(payload)
+        reg_result = self.create_customer(payload)
+        
+        # 2. Add address if registration was successful
+        customer_id = reg_result.get("result")
+        address_result = None
+        
+        if customer_id and customer_id > 0:
+            address_data = {
+                "CityId": city_id,
+                "Detail": address_detail,
+                "Isdefault": True
+            }
+            if address_name:
+                address_data["Name"] = address_name
+                
+            address_result = self.add_customer_address(customer_id, address_data)
+            
+        return {
+            "registration": reg_result,
+            "address": address_result,
+            "result": customer_id # For backward compatibility
+        }
 
     # --- Material Management APIs ---
 
