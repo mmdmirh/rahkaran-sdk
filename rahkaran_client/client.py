@@ -308,7 +308,7 @@ class RahkaranClient:
                           last_name: str,
                           national_code: str,
                           mobile: str,
-                          city_id: int,
+                          city: Union[int, str],
                           address_detail: str,
                           gender: int = 0,
                           birth_date: Optional[str] = None,
@@ -321,7 +321,7 @@ class RahkaranClient:
             last_name: Customer's last name.
             national_code: Customer's national identity code.
             mobile: Mobile phone number.
-            city_id: ID of the city for the address (Required).
+            city: Either the integer City ID or the City Name string (e.g., "تهران").
             address_detail: Full address detail (Required).
             gender: 0 for unknown/unspecified, 1 for Male, 2 for Female.
             birth_date: (Optional) "YYYY-MM-DD".
@@ -330,6 +330,21 @@ class RahkaranClient:
         Returns:
             A dictionary containing the results of both operations.
         """
+        # 0. Handle City Name lookup
+        city_id = None
+        if isinstance(city, str):
+            places_res = self.get_places()
+            places = places_res.get("result", [])
+            for place in places:
+                if place.get("type") == "City" and place.get("name") == city:
+                    city_id = place.get("id")
+                    break
+            
+            if not city_id:
+                raise ValueError(f"City '{city}' not found in Rahkaran. Please check the name or use an ID.")
+        else:
+            city_id = city
+
         # 1. Create the customer
         payload = {
             "FirstName": first_name,
