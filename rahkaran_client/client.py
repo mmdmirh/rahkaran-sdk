@@ -278,6 +278,13 @@ class RahkaranClient:
             
         return self._request("GET", URLs.GET_CUSTOMERS, params=params)
 
+    def get_places(self) -> Dict:
+        """
+        Retrieve a list of countries and cities (Places) from Rahkaran.
+        Useful for finding CityId for customer addresses.
+        """
+        return self._request("GET", URLs.GET_PLACES)
+
     def add_customer_address(self, customer_id: int, address_data: Dict) -> Dict:
         """
         Add an address to an existing customer.

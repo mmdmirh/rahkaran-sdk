@@ -34,6 +34,7 @@ class URLs:
     CUSTOMER = f"{RETAIL_BASE}/ESales.svc/Customer"
     ADDRESS = f"{RETAIL_BASE}/ESales.svc/Address"
     GET_CUSTOMERS = f"{RETAIL_BASE}/ESales.svc/Customers"
+    GET_PLACES = f"{RETAIL_BASE}/ESales.svc/Places"
 
     # Stock
     GET_REMAINING = f"{RETAIL_BASE}/InventoryService.svc/GetRemaining" # Deduced from /remaining
