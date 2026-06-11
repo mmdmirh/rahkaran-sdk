@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="rahkaran-client",
-    version="0.2.1",
+    version="0.2.2",
     description="A Python client for interacting with Rahkaran ERP APIs.",
     author="Your Name",
     author_email="your.email@example.com",

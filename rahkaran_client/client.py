@@ -232,10 +232,13 @@ class RahkaranClient:
 
     def calculate_policies(self, document: Dict) -> Dict:
         """
-        Calculate the sales policies (سیاست های فروش, e.g. discounts) applicable
-        to an invoice document before registering it.
+        Calculate the sales policies (سیاست های فروش — VAT, levies, delivery
+        type, discounts) applicable to an invoice document. Per the official
+        flow this must run before registering the invoice, and the returned
+        enriched document is what gets POSTed to Invoice.
         """
-        return self._request("POST", URLs.CALCULATE_POLICY, json=document)
+        payload = document if 'document' in document else {'document': document}
+        return self._request("POST", URLs.CALCULATE_POLICY, json=payload)
 
     def create_sales_invoice(self,
                              customer_id: int,
@@ -327,17 +330,21 @@ class RahkaranClient:
             national_id: (Optional) Filter by national ID.
             mobile: (Optional) Filter by mobile number.
         """
+        # NOTE: the service expects camelCase query params. The names with
+        # spaces shown in the official docs ("National ID", "Number of
+        # Records") are silently IGNORED, which made this return the
+        # unfiltered customer list.
         params = {
-            "From": from_, 
-            "Number of Records": count
+            "from": from_,
+            "numberOfRecords": count
         }
         if name:
-            params["Name"] = name
+            params["name"] = name
         if national_id:
-            params["National ID"] = national_id
+            params["nationalId"] = national_id
         if mobile:
-            params["Mobile"] = mobile
-            
+            params["mobile"] = mobile
+
         return self._request("GET", URLs.GET_CUSTOMERS, params=params)
 
     def get_places(self) -> Dict:
