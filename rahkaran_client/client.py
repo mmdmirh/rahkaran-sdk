@@ -204,9 +204,49 @@ class RahkaranClient:
 
     # --- Sales APIs ---
 
-    def register_invoice(self, invoice_payload: Dict) -> Dict:
-        """Register a Sales Invoice in Rahkaran (POST ESales.svc/Invoice)."""
-        return self._request("POST", URLs.REGISTER_INVOICE, json=invoice_payload)
+    def cashier_login(self, machine_name: str) -> bool:
+        """
+        Open the cash-register (صندوق) session for the authenticated user.
+
+        Rahkaran requires every sales write (invoice/sales order/policy) to run
+        inside a cashier session; without it the services fail with
+        «صندوق برای مدتی بدون استفاده مانده است». machine_name is the computer
+        name registered for the صندوق in Rahkaran's retail module, and the
+        صندوق must have an open sales period (بازه فروش).
+        """
+        url = f"{self.base_url}/Services/Retail/RetailAuthenticationService.svc/CashierLogin"
+        response = self.session.post(url, json={"machineName": machine_name}, timeout=30)
+        if response.status_code != 200:
+            logger.warning(f"CashierLogin failed (HTTP {response.status_code}) for machine '{machine_name}'")
+            return False
+        return True
+
+    def cashier_tick(self) -> bool:
+        """Keep the cashier session alive."""
+        url = f"{self.base_url}/Services/Retail/RetailAuthenticationService.svc/Tick"
+        response = self.session.get(url, timeout=30)
+        return response.status_code == 200 and 'true' in response.text.lower()
+
+    def register_invoice(self, invoice_payload: Dict,
+                         receipts: Optional[List[Dict]] = None,
+                         payments: Optional[List[Dict]] = None) -> Dict:
+        """
+        Register a Sales Invoice (POST ESales.svc/Invoice).
+
+        The request is the WCF-wrapped form discovered from the live WSDL:
+        {"document": <ESalesDocument>, "receipts": [...], "payments": [...]}.
+        Receipts/payments entries are ESalesSettlementData ({"key", "amount"})
+        and their sum must equal the invoice total.
+        """
+        if 'document' in invoice_payload:
+            payload = invoice_payload
+        else:
+            payload = {
+                'document': invoice_payload,
+                'receipts': receipts or [],
+                'payments': payments or [],
+            }
+        return self._request("POST", URLs.REGISTER_INVOICE, json=payload)
 
     def get_invoice(self, invoice_id: int) -> Dict:
         """Fetch a single registered Sales Invoice by its ID."""
@@ -217,8 +257,16 @@ class RahkaranClient:
         return self._request("GET", URLs.GET_INVOICES, params={"Customer ID": customer_id})
 
     def register_sales_order(self, order_payload: Dict) -> Dict:
-        """Register a Sales Order in Rahkaran."""
-        return self._request("POST", URLs.REGISTER_SALES_ORDER, json=order_payload)
+        """Register a Sales Order in Rahkaran (POST ESales.svc/salesOrder).
+        The body must be wrapped as {"document": <ESalesDocument>}."""
+        payload = order_payload if 'document' in order_payload else {'document': order_payload}
+        return self._request("POST", URLs.REGISTER_SALES_ORDER, json=payload)
+
+    def calculate_sales_order_policies(self, document: Dict) -> Dict:
+        """Calculate sales policies for a sales-order document
+        (POST ESales.svc/salesOrderPolicy)."""
+        payload = document if 'document' in document else {'document': document}
+        return self._request("POST", URLs.CALCULATE_SALES_ORDER_POLICY, json=payload)
 
     def get_settlement_policies(self, settlement_id: Optional[int] = None) -> Dict:
         """
@@ -227,7 +275,7 @@ class RahkaranClient:
         """
         params = {}
         if settlement_id is not None:
-            params["Settlement ID"] = settlement_id
+            params["settlementPolicyId"] = settlement_id
         return self._request("GET", URLs.GET_SETTLEMENT_POLICIES, params=params)
 
     def calculate_policies(self, document: Dict) -> Dict:

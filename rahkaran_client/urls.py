@@ -30,9 +30,12 @@ class URLs:
     REGISTER_INVOICE = f"{RETAIL_BASE}/{ESALES_SVC}/Invoice"
     GET_INVOICE = f"{RETAIL_BASE}/{ESALES_SVC}/Invoice"
     GET_INVOICES = f"{RETAIL_BASE}/{ESALES_SVC}/Invoices"
-    REGISTER_SALES_ORDER = f"{RETAIL_BASE}/{ESALES_SVC}/SalesOrder"
+    REGISTER_SALES_ORDER = f"{RETAIL_BASE}/{ESALES_SVC}/salesOrder"
     CALCULATE_POLICY = f"{RETAIL_BASE}/{ESALES_SVC}/Policy"
-    GET_SETTLEMENT_POLICIES = f"{RETAIL_BASE}/{ESALES_SVC}/settlementpolicy"
+    CALCULATE_SALES_ORDER_POLICY = f"{RETAIL_BASE}/{ESALES_SVC}/salesOrderPolicy"
+    # GetSettlementPolicyInfo — the docs say 'settlementpolicy' but the live
+    # service maps it to '/settlement' (param: settlementPolicyId)
+    GET_SETTLEMENT_POLICIES = f"{RETAIL_BASE}/{ESALES_SVC}/settlement"
     GET_COUPON = f"{RETAIL_BASE}/{ESALES_SVC}/Coupon"
     GET_DISCOUNT_CARD = f"{RETAIL_BASE}/{ESALES_SVC}/DiscountCard"
 
