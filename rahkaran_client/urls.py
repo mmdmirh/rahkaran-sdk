@@ -55,7 +55,7 @@ class URLs:
     def build_url(base_host: str, endpoint: str) -> str:
         """Helper to construct full URL.
         Args:
-            base_host: e.g. "https://blahblah.rahkaran.ir/sg5g/x8710x6ee"
+            base_host: e.g. "https://example.rahkaran.ir/sgXg/xXXXXXXXX"
             endpoint: One of the constants above.
         """
         return f"{base_host.rstrip('/')}/{endpoint.lstrip('/')}"

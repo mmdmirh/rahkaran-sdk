@@ -33,7 +33,7 @@ from rahkaran_client import RahkaranClient
 # 1. Login with Username/Password (Requires rahkaran-auth installed)
 # The client will automatically handle the handshake and session cookies.
 try:
-    client = RahkaranClient("https://your-rahkaran-host/sgXg/xXXXXXXXX",
+    client = RahkaranClient("https://example.rahkaran.ir/sgXg/xXXXXXXXX",
                            username="your_user",
                            password="your_password",
                            verify_ssl=False)  # some instances use self-signed certs

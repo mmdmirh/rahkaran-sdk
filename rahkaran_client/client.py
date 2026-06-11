@@ -586,6 +586,31 @@ class RahkaranClient:
                 })
         return warehouses
 
+    def get_product(self, product_id: int) -> Dict:
+        """Fetch a single product (GET ESales.svc/Product?Id=...), including
+        its units list."""
+        return self._request("GET", URLs.GET_PRODUCT, params={"Id": product_id})
+
+    def get_default_unit_id(self, product_id: int, fallback: int = 1) -> int:
+        """
+        Resolve the default unit id for a product. Invoice/sales-order items
+        require unitId; on some instances the Remaining endpoint returns only
+        a bare quantity, so the single-Product endpoint is the reliable source.
+        """
+        try:
+            product = self.get_product(product_id).get('result') or {}
+            units = product.get('units') or []
+            if isinstance(units, dict):
+                units = [units]
+            for unit in units:
+                if unit.get('isDefault'):
+                    return unit.get('id', fallback)
+            if units:
+                return units[0].get('id', fallback)
+        except Exception as e:
+            logger.warning(f"Could not resolve default unit for product {product_id}: {e}")
+        return fallback
+
     def get_products(self, store_id: int, from_: int = 0, number_of_records: int = 600, time_out: int = 30) -> Dict:
         """Fetch products for a specific store with pagination."""
         params = {
