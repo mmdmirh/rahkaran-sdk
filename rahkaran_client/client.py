@@ -686,6 +686,61 @@ class RahkaranClient:
             }
         }
 
+    def _fetch_products_page_safe(self, store_id: int, offset: int, batch_size: int, retries: int = 2):
+        """Fetch one products page; retry on transient failure (the ERP is slow
+        and can time out under concurrency). Returns the items list, or None if it
+        still fails after ``retries`` extra attempts."""
+        for attempt in range(retries + 1):
+            try:
+                resp = self._request("GET", URLs.GET_PRODUCTS, params={
+                    "storeId": store_id, "from": offset, "numberOfRecords": batch_size,
+                })
+                return resp.get('result') or []
+            except Exception as e:
+                if attempt < retries:
+                    continue
+                logger.error(f"Product page fetch failed at offset {offset} after {retries + 1} tries: {e}")
+                return None
+
+    def get_all_products_concurrent(self, store_id: int, workers: int = 8,
+                                    batch_size: int = 200, max_pages: int = 400) -> Dict:
+        """
+        Fetch the WHOLE product catalogue FAST by firing page requests in bounded
+        concurrent WAVES (offset windows are independent). Ends when a wave returns
+        a short/empty SUCCESSFUL page. A page that keeps failing is logged and
+        skipped (a transient timeout must not truncate the sync). ``workers`` bounds
+        concurrency so the slow ERP isn't overwhelmed.
+
+        Returns {"result": [...products...],
+                 "metadata": {"total_count", "missing_offsets"}}.
+        """
+        from concurrent.futures import ThreadPoolExecutor
+
+        all_items: List[Dict] = []
+        missing: List[int] = []
+        page = 0
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            while page < max_pages:
+                offsets = [(page + i) * batch_size for i in range(workers)]
+                results = list(ex.map(
+                    lambda off: (off, self._fetch_products_page_safe(store_id, off, batch_size)), offsets))
+                stop = False
+                for off, items in results:
+                    if items is None:
+                        missing.append(off)
+                        continue
+                    all_items.extend(items)
+                    if len(items) < batch_size:
+                        stop = True
+                if stop:
+                    break
+                page += workers
+        if missing:
+            logger.warning(f"get_all_products_concurrent: {len(missing)} page(s) failed "
+                           f"(offsets {missing}); re-run to pick up missing products.")
+        return {"result": all_items,
+                "metadata": {"total_count": len(all_items), "missing_offsets": missing}}
+
     def get_remaining(self, store_id: int, product_id: int, tracking_factor_id: Optional[int] = None) -> Dict:
         """Fetch remaining stock for a product in a store (POST ESales.svc/Remaining)."""
         payload = {"storeId": store_id, "productId": product_id}
