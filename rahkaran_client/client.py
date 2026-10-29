@@ -268,6 +268,89 @@ class RahkaranClient:
         payload = document if 'document' in document else {'document': document}
         return self._request("POST", URLs.CALCULATE_SALES_ORDER_POLICY, json=payload)
 
+    @staticmethod
+    def build_sales_order_document(
+        customer_id: int,
+        settlement_policy_id: int,
+        store_id: int,
+        document_pattern_id: int,
+        items: List[Dict],
+        price: Optional[float] = None,
+        net_price: Optional[float] = None,
+        currency_id: int = 1,
+        document_id: int = 0,
+        date: Optional[str] = None,
+        description: Optional[str] = None,
+        sales_area_id: Optional[int] = None,
+        customer_address_id: Optional[int] = None,
+        expiration_date: Optional[str] = None,
+        delivery_date: Optional[str] = None,
+        bill_issue_time: Optional[str] = None,
+    ) -> Dict:
+        """Build an `ESalesOrderDocument` body for `register_sales_order` /
+        `calculate_sales_order_policies`.
+
+        Field set verified against the live ESales WSDL's `ESalesOrderDocument`
+        complex type — not guessed. Only `customerId`/`currencyId`/
+        `settlementPolicyId`/`storeId`/`documentPatternId`/`items` are
+        required by Rahkaran; the rest are left out of the payload when not
+        given, rather than sent as null, since the Policy step can drop
+        fields it does not expect.
+
+        Each item in `items` needs at least `productId`, `unitId`,
+        `quantity`, `storeId`; `fee` is the unit price. The document has no
+        field for a partial/split amount (no payments/receipts array exists
+        on write) — only one `price`/`netPrice` per document — so a per-line
+        breakdown (prepayment, VAT, financed remainder, etc.) has to go in
+        `description` as text, or be tracked outside Rahkaran entirely.
+        """
+        total = price if price is not None else sum(
+            (i.get('fee', 0) or 0) * (i.get('quantity', 0) or 0) for i in items)
+        document = {
+            'id': document_id,
+            'date': date or datetime.now().strftime(RAHKARAN_DATE_FORMAT),
+            'customerId': customer_id,
+            'currencyId': currency_id,
+            'settlementPolicyId': settlement_policy_id,
+            'storeId': store_id,
+            'documentPatternId': document_pattern_id,
+            'price': total,
+            'netPrice': net_price if net_price is not None else total,
+            'items': items,
+            'policies': [],
+        }
+        if description is not None:
+            document['description'] = description
+        if sales_area_id is not None:
+            document['salesAreaId'] = sales_area_id
+        if customer_address_id is not None:
+            document['customerAddressId'] = customer_address_id
+        if expiration_date is not None:
+            document['expirationDate'] = expiration_date
+        if delivery_date is not None:
+            document['deliveryDate'] = delivery_date
+        if bill_issue_time is not None:
+            document['BillIssueTime'] = bill_issue_time
+        return document
+
+    @staticmethod
+    def get_policy_effect(document_or_policies: Union[Dict, List[Dict]], policy_id: int) -> Optional[Dict]:
+        """Find one policy result by `policyId` in a document's (or a line
+        item's) `policies` array, e.g. the result of
+        `calculate_sales_order_policies`.
+
+        Policy IDs are configured per Rahkaran instance (e.g. VAT might be
+        89 on one instance and something else on another) — always look a
+        policy up by the id your instance uses, never hardcode one here.
+        """
+        policies = document_or_policies
+        if isinstance(document_or_policies, dict):
+            policies = document_or_policies.get('policies') or []
+        for p in policies or []:
+            if p.get('policyId') == policy_id:
+                return p
+        return None
+
     def get_settlement_policies(self, settlement_id: Optional[int] = None) -> Dict:
         """
         Fetch the settlement policies (انواع دریافت فاکتور) defined in Rahkaran,
