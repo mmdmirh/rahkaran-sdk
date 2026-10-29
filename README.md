@@ -65,7 +65,45 @@ result = client.create_sales_invoice(
 )
 ```
 
+## Building a Sales Order document
+
+```python
+from rahkaran_client import RahkaranClient, RetailSalesOrderBillIssueTime
+
+document = RahkaranClient.build_sales_order_document(
+    customer_id=customer_id,
+    settlement_policy_id=8,
+    store_id=6,               # retail shop
+    document_pattern_id=1,    # sales-order pattern (per-instance)
+    items=[{"productId": 44, "unitId": 279, "quantity": 2, "storeId": 9, "fee": 100000}],
+    description="order #1234",
+    bill_issue_time=RetailSalesOrderBillIssueTime.AFTER_DELIVERY,
+)
+policy_result = client.calculate_sales_order_policies(document)
+ok, enriched_document, err = RahkaranClient.parse_response(policy_result)
+response = client.register_sales_order(enriched_document if ok else document)
+
+# Read back a specific policy's effect (policy IDs are per-instance):
+vat = RahkaranClient.get_policy_effect(enriched_document, policy_id=89)
+```
+
+`ESalesOrderDocument` (verified against the live WSDL) has exactly one
+`price`/`netPrice` per document — there is no payments/receipts array on
+write. A multi-part breakdown (prepayment, VAT, financed remainder, etc.)
+has to be recorded as text in `description`, or tracked outside Rahkaran.
+
 ## Changelog
+
+### 0.3.0
+- New `RahkaranClient.build_sales_order_document()` — builds an
+  `ESalesOrderDocument` body with the exact field set verified against the
+  live ESales WSDL (`SystemGroup.Retail.eSalesApi.Web.ESalesOrderDocument`),
+  instead of hand-rolling the payload dict per project.
+- New `RahkaranClient.get_policy_effect()` — look up one policy's result by
+  `policyId` in a document's or line item's `policies` array.
+- New `rahkaran_client.constants`: `RetailSalesOrderBillIssueTime`
+  (`BeforeDelivery`/`AfterDelivery`) and `RetailSalesOrderStatus`, both
+  taken from the live WSDL's enum definitions, previously undocumented.
 
 ### 0.2.0
 - Fixed `Remaining` and `Price` endpoints to use `ESales.svc` per the official
